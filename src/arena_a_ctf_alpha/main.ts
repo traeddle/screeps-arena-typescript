@@ -159,11 +159,12 @@ function meleeAttacker(creep: Creep) {
     return;
   }
 
-  let targets = global.enemyCreeps.filter(i => getRange(i, creep) < 5).sort((a, b) => getRange(a, creep) - getRange(b, creep));
+  const targetRange = 5;
+  let targetsInRange = global.enemyCreeps.filter(i => getRange(i, creep) < targetRange).sort((a, b) => getRange(a, creep) - getRange(b, creep));
 
-  if (targets.length > 0) {
-    creep.moveTo(targets[0]);
-    creep.attack(targets[0]);
+  if (targetsInRange.length > 0) {
+    creep.moveTo(targetsInRange[0]);
+    creep.attack(targetsInRange[0]);
   } else if (global.enemyCreeps[0].getRangeTo(global.myFlag) < 75) {
     creep.moveTo(global.myFlag);
   } else if (global.attackerParts.length > 0) {
@@ -175,13 +176,13 @@ function meleeAttacker(creep: Creep) {
     creep.moveTo(global.attackerParts[0]);
     console.log("Attacker going after bodypart: ", global.attackerParts[0]);
   } else {
-    targets = global.enemyCreeps
+    targetsInRange = global.enemyCreeps
       .filter(i => getRange(i, creep.initialPos) < 10)
       .sort((a, b) => getRange(a, creep) - getRange(b, creep));
 
-    if (targets.length > 0) {
-      creep.moveTo(targets[0]);
-      creep.attack(targets[0]);
+    if (targetsInRange.length > 0) {
+      creep.moveTo(targetsInRange[0]);
+      creep.attack(targetsInRange[0]);
     } else {
       creep.moveTo(creep.initialPos);
     }
@@ -229,10 +230,17 @@ function rangedAttacker(creep: Creep) {
     creep.follow = undefined;
   }
 
+  // todo: need to figure out if doing a ranged Attack is better than a mass attack
   const range = 3;
+  const closeRange = 10;
   const enemiesInRange = global.enemyCreeps.filter(i => getRange(i, creep) < range).sort((a, b) => a.hits - b.hits);
-  if (enemiesInRange.length > 0) {
+  const enemiesInCloseRange = global.enemyCreeps.filter(i => getRange(i, creep) < closeRange).sort((a, b) => a.hits - b.hits);
+  if (enemiesInRange.length === 1) {
     creep.rangedAttack(enemiesInRange[0]);
+  } else if (enemiesInRange.length > 1) {
+    creep.rangedMassAttack();
+  } else if (enemiesInCloseRange.length > 1) {
+    creep.moveTo(enemiesInCloseRange[0]);
   } else if (creep.follow) {
     creep.moveTo(creep.follow);
     creep.follow.pull(creep);
@@ -246,22 +254,45 @@ function healer(creep: Creep) {
     creep.follow = undefined;
   }
 
-  const healTargets = global.myCreeps
-    .filter(i => i !== creep && i.hits < i.hitsMax && creep.getRangeTo(i) <= 3)
+  const healRange = 1;
+  const rangedHealRange = 3;
+  const goToHealRange = 15;
+
+  const targetsInHealRange = global.myCreeps
+    .filter(i => i.hits < i.hitsMax && creep.getRangeTo(i) <= healRange)
     .sort((a, b) => a.hits - b.hits);
 
-  if (healTargets.length > 0) {
-    if (getRange(healTargets[0], creep) === 1) {
-      creep.heal(healTargets[0]);
-    } else {
-      creep.rangedHeal(healTargets[0]);
-    }
-  } else if (creep.follow) {
+  if (targetsInHealRange.length > 0){
+    creep.heal(targetsInHealRange[0]);
+    return;
+  }
+
+  const targetsInRangedHealRange = global.myCreeps
+    .filter(i => i.hits < i.hitsMax && creep.getRangeTo(i) <= rangedHealRange)
+    .sort((a, b) => a.hits - b.hits);
+
+  if (targetsInRangedHealRange.length > 0) {
+    creep.moveTo(targetsInRangedHealRange[0]);
+    creep.rangedHeal(targetsInRangedHealRange[0]);
+    return;
+  }
+
+  const targetsInGoToHealRange = global.myCreeps
+    .filter(i => i.hits < i.hitsMax && creep.getRangeTo(i) <= goToHealRange)
+    .sort((a, b) => a.hits - b.hits);
+
+  if (targetsInGoToHealRange.length > 0) {
+    creep.moveTo(targetsInRangedHealRange[0]);
+    return;
+  }
+
+  if (creep.follow) {
     creep.moveTo(creep.follow);
     creep.follow.pull(creep);
   } else {
     CreepDefaultAction(creep);
   }
+
 }
 
 function CreepDefaultAction(creep: Creep) {
