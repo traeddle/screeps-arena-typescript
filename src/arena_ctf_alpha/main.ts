@@ -11,7 +11,8 @@ import { searchPath } from "game/path-finder";
 import { isFirstTick } from "common/index";
 import { HealLine, displayHits } from "common/visualUtls";
 import { executeTowers } from  "./towerManager";
-import { initCreeps, executeCreeps, CreepRoles} from "./creepManager";
+import { initCreeps, executeCreeps, CreepRoles } from "./creepManager";
+import { GameState, execute } from "./gameManager";
 
 
 
@@ -32,6 +33,7 @@ declare module "game/prototypes" {
 declare global {
   module NodeJS {
       interface Global {
+        currentState: GameState
         myCreeps: Creep[]
         enemyCreeps: Creep[]
         myTowers: StructureTower[]
@@ -71,12 +73,17 @@ export function loop(): void {
     return range1 - range2;
   });
 
-  
+
   if (getTicks() % 10 === 0) {
+    console.log(`Game State: ${global.currentState}`);
     console.log(`I have ${global.myCreeps.length} creeps`);
     console.log(`They have ${global.enemyCreeps.length} creeps`);
-    console.log("Closest enemy:", global.enemyCreeps[0].id);
+    if (global.enemyCreeps[0]) {
+      console.log("Closest enemy:", global.enemyCreeps[0].id);
+    }
   }
+
+  execute();
 
   executeTowers();
 
