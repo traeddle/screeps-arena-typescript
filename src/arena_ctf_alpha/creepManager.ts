@@ -1,12 +1,13 @@
 /* eslint-disable prettier/prettier */
 import { ATTACK, HEAL, MOVE, RANGED_ATTACK, RESOURCE_ENERGY, TOUGH, TOWER_RANGE } from "game/constants";
-import { Creep, GameObject, StructureTower } from "game/prototypes";
+import { Creep, GameObject, RoomPosition, StructureTower } from "game/prototypes";
 import { getCpuTime, getDirection, getObjectsByPrototype, getRange, getTicks } from "game/utils";
 import { BodyPart, Flag } from "arena";
 import { Visual } from "game/visual";
-import { searchPath } from "game/path-finder";
+import { FindPathResult, searchPath } from "game/path-finder";
 import { isFirstTick } from "common/index";
 import { HealLine, displayHits } from "common/visualUtls";
+import { colors } from "common/constants";
 import { executeTowers } from "./towerManager";
 import { GameState } from "./models";
 
@@ -17,7 +18,7 @@ export enum CreepRoles {
   RANGED_ATTACKER
 }
 
-Creep.prototype.getActiveParts = function(type) {
+Creep.prototype.HasActivePart = function(type) {
 
   for (const part of this.body) {
 
@@ -25,6 +26,19 @@ Creep.prototype.getActiveParts = function(type) {
   }
 
   return false
+}
+
+Creep.prototype.GetPath = function(goal: RoomPosition, range: number | undefined, runAway: boolean | undefined) {
+  const result = searchPath(this, goal, {
+    costMatrix: global.GameManager.PathingCostMatrix,
+    range,
+    flee: runAway
+  });
+
+  new Visual().poly(result.path, { opacity: 0.2, stroke: colors.purple });
+  if(runAway) new Visual().text("F", this, { font: 0.5 });
+
+  return result;
 }
 
 export function executeCreeps() {
@@ -89,6 +103,7 @@ export function initCreeps() {
 }
 
 function meleeAttacker(creep: Creep) {
+  // todo: need to seperate out movement from action
   const targetsInRange = global.enemyCreeps
     .filter(i => getRange(i, creep) < 2)
     .sort((a, b) => a.hits - b.hits);
@@ -97,26 +112,34 @@ function meleeAttacker(creep: Creep) {
     creep.attack(targetsInRange[0]);
   }
 
+  // todo: add some logic to free when appropriate
+  let pathResult: FindPathResult;
   switch(global.currentState) {
     case GameState.Attack:
-      creep.moveTo(global.enemyFlag);
+      pathResult = creep.GetPath(global.enemyFlag);
+      creep.moveTo(pathResult.path[0]);
       break;
     case GameState.Defend:
-      creep.moveTo(global.myFlag);
+      pathResult = creep.GetPath(global.myFlag);
+      creep.moveTo(pathResult.path[0]);
       break;
     case GameState.Gather:
       if (global.attackerParts.length > 0) {
         // go after the body parts
+
         global.attackerParts.sort((a, b) => {
           return creep.getRangeTo(a) - creep.getRangeTo(b);
         });
 
-        creep.moveTo(global.attackerParts[0]);
+        // todo: check how long it will take to get to the part and if its to long, go to the next flag
+        pathResult = creep.GetPath(global.attackerParts[0]);
+        creep.moveTo(pathResult.path[0]);
         console.log("Attacker going after bodypart: ", global.attackerParts[0]);
       }
       break;
     case GameState.PrepAttack:
-      creep.moveTo(global.myFlag);
+      pathResult = creep.GetPath(global.myFlag);
+      creep.moveTo(pathResult.path[0]);
       break;
     default:
       console.log('{gameState} not supported', global.currentState);

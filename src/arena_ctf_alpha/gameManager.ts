@@ -16,28 +16,37 @@ import { BodyPart, Flag } from "arena";
 import { Visual } from "game/visual";
 import { CostMatrix, searchPath } from "game/path-finder";
 import { isFirstTick } from "common/index";
-import { GetRange, findPositionsInsideRect } from "common/util";
+import { GetRange, findPositionsInsideRect, GetAllRoomPositions } from "common/util";
 import { HealLine, displayHits } from "common/visualUtls";
 import { colors } from "common/constants";
 import { executeTowers } from "./towerManager";
 import { CreepRoles, executeCreeps, initCreeps } from "./creepManager";
 import { GameState } from "./models";
+import { AddCost } from "./CostMatrixExtension"
+
+declare module "game/path-finder" {
+  interface CostMatrix {
+    /** Adds a cost to the specified position */
+    AddCost(pos: RoomPosition, addionalCost: number): void;
+    Print(): void;
+  }
+}
 
 export class GameManager {
   //* this is used as a starting matrix. It adds the weights of the terrain and is is only calculated in the first tick */
   private costMatrix: CostMatrix = new CostMatrix();
   //* this is used to calculate how long it will take a creep to move from one place to another, only needs to be calculated one time */
-  private movementCostMatrix: CostMatrix = new CostMatrix();
+  private movementCostMatrix: CostMatrix = this.GetMovementCostMatrix();
 
   //* this is used to calculate a safe path, with added costs for entering near enemies and such */
-  private _pathingCostMatrix: CostMatrix = new CostMatrix();
+  private pathingCostMatrix: CostMatrix = new CostMatrix();
 
   public get PathingCostMatrix(): CostMatrix {
-    return this._pathingCostMatrix;
+    return this.pathingCostMatrix;
   }
 
   private set PathingCostMatrix(value: CostMatrix) {
-    this._pathingCostMatrix = value;
+    this.pathingCostMatrix = value;
   }
 
   /**
@@ -96,19 +105,20 @@ export class GameManager {
 
     // add cost if that square is closer to their flag than ours
     const costToAdd = 1;
-    const allRoomPositions = this.GetAllRoomPositions();
+    const allRoomPositions = GetAllRoomPositions();
     allRoomPositions.forEach(pos => {
       if (GetRange(global.myFlag, pos) > GetRange(global.enemyFlag, pos)) {
-        this.costMatrix.AddCost(pos, costToAdd);
+        AddCost(this.costMatrix, pos, costToAdd);
       }
     });
+    // this.costMatrix.Print();
   }
 
   private UpdatePathingCostMatrix() {
     this.PathingCostMatrix = this.costMatrix.clone();
 
-    this.AddCostForEnemies(this.PathingCostMatrix, ATTACK, 1, 100);
-    this.AddCostForEnemies(this.PathingCostMatrix, RANGED_ATTACK, 3, 100);
+    this.AddCostForEnemies(this.PathingCostMatrix, ATTACK, 1, 10);
+    this.AddCostForEnemies(this.PathingCostMatrix, RANGED_ATTACK, 3, 10);
     // todo: add enemy towers? (include energy?)
   }
 
@@ -118,12 +128,12 @@ export class GameManager {
     attackRange: number,
     additionalCost: number
   ) {
-    const attackEnemyCreeps = global.enemyCreeps.filter(creep => creep.getActiveParts(activePart));
+    const attackEnemyCreeps = global.enemyCreeps.filter(creep => creep.HasActivePart(activePart));
 
     let range = attackRange;
 
     for (const enemyCreep of attackEnemyCreeps) {
-      range = enemyCreep.getActiveParts(MOVE) ? attackRange + 1 : attackRange;
+      range = enemyCreep.HasActivePart(MOVE) ? attackRange + 1 : attackRange;
 
       const positions = findPositionsInsideRect(
         enemyCreep.x - range,
@@ -133,7 +143,7 @@ export class GameManager {
       );
 
       for (const pos of positions) {
-        costMatrix.AddCost(pos, additionalCost);
+        AddCost(costMatrix, pos, additionalCost);
       }
 
       new Visual().rect(
@@ -145,16 +155,12 @@ export class GameManager {
     }
   }
 
-  private GetAllRoomPositions(): RoomPosition[] {
-    return findPositionsInsideRect(0, 0, 100, 100);
-  }
-
   private GetMovementCostMatrix(): CostMatrix {
     if (this.movementCostMatrix) return this.movementCostMatrix;
     const costMatrix = new CostMatrix();
 
     // go through the map and set the initial cost matrix
-    const positions = this.GetAllRoomPositions();
+    const positions = GetAllRoomPositions();
 
     for (const pos of positions) {
       const terrain = getTerrainAt(pos) as number;
@@ -175,6 +181,7 @@ export class GameManager {
           console.log("Terrain not supported: ", terrain);
       }
 
+      new Visual().text(value.toString(), { x: pos.x, y: pos.y }, { font: 0.5 });
       costMatrix.set(pos.x, pos.y, value);
     }
 

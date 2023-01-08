@@ -1,4 +1,6 @@
 import { RoomPosition } from "game/prototypes";
+import { getCpuTime } from "game/utils";
+import { MAP_HEIGHT, MAP_WIDTH } from "./constants";
 
 // todo: use this insted of getRangeTo for a perf improvement
 export function GetRange(pos1: RoomPosition, pos2: RoomPosition) {
@@ -23,4 +25,12 @@ export function findPositionsInsideRect(x1: number, y1: number, x2: number, y2: 
   }
 
   return positions;
+}
+
+export function GetAllRoomPositions(): RoomPosition[] {
+  return findPositionsInsideRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
+}
+
+export function LogCpu() {
+  console.log("CPU: " + (getCpuTime() / 1000000).toFixed(2).toString() + " / 50");
 }

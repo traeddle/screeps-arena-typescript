@@ -8,13 +8,14 @@ import { Creep, GameObject, StructureTower, RoomPosition } from "game/prototypes
 import { getCpuTime, getDirection, getObjectsByPrototype, getRange, getTicks } from "game/utils";
 import { BodyPart, Flag } from "arena";
 import { Visual } from "game/visual";
-import { CostMatrix, searchPath } from "game/path-finder";
+import { CostMatrix, FindPathResult, searchPath } from "game/path-finder";
 import { isFirstTick } from "common/index";
 import { HealLine, displayHits } from "common/visualUtls";
 import { executeTowers } from "./towerManager";
 import { initCreeps, executeCreeps, CreepRoles } from "./creepManager";
 import { GameManager } from "./gameManager";
 import { GameState } from "./models";
+import {} from "./CostMatrixExtension";
 
 declare module "game/prototypes" {
   interface Creep {
@@ -22,7 +23,8 @@ declare module "game/prototypes" {
     role: CreepRoles;
     follow: Creep | undefined;
 
-    getActiveParts(type: BodyPartConstant): boolean;
+    GetPath(goal: RoomPosition, range?: number | undefined, runAway?: boolean | undefined): FindPathResult;
+    HasActivePart(type: BodyPartConstant): boolean;
   }
 }
 
@@ -30,7 +32,8 @@ declare module "game/path-finder" {
   interface CostMatrix {
 
     /** Adds a cost to the specified position */
-    AddCost(pos: RoomPosition, addionalCost: number): void
+    AddCost(pos: RoomPosition, addionalCost: number): void;
+    Print(): void;
   }
 }
 
@@ -61,6 +64,8 @@ export function loop(): void {
   if (isFirstTick()) {
     global.GameManager = new GameManager();
     global.GameManager.init();
+    console.log("Init complete");
+    console.log("CPU: " + (getCpuTime() / 1000000).toFixed(2).toString() + " / 50");
   }
 
   // remove the dead
@@ -77,21 +82,25 @@ export function loop(): void {
     return range1 - range2;
   });
 
-  if (getTicks() % 10 === 0) {
-    console.log(`Game State: ${global.currentState}`);
-    console.log(`I have ${global.myCreeps.length} creeps`);
-    console.log(`They have ${global.enemyCreeps.length} creeps`);
-    if (global.enemyCreeps[0]) {
-      console.log("Closest enemy:", global.enemyCreeps[0].id);
-    }
-  }
-
   global.GameManager.executeTick();
 
   executeTowers();
 
   // Run all my creeps according to their bodies
   executeCreeps();
+
+
+  if (getTicks() % 10 === 0) {
+    // console.log("CPU: " + (getCpuTime() / 1000000).toFixed(2).toString() + " / 50");
+    console.log(`Game State: ${global.currentState}`);
+    console.log(`I have ${global.myCreeps.length} creeps`);
+    console.log(`They have ${global.enemyCreeps.length} creeps`);
+    if (global.enemyCreeps[0]) {
+      console.log("Closest enemy:", global.enemyCreeps[0].id);
+    }
+
+    // global.GameManager.PathingCostMatrix.Print();
+  }
 
   console.log("CPU: " + (getCpuTime() / 1000000).toFixed(2).toString() + " / 50");
 }
