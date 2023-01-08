@@ -8,12 +8,23 @@ import { searchPath } from "game/path-finder";
 import { isFirstTick } from "common/index";
 import { HealLine, displayHits } from "common/visualUtls";
 import { executeTowers } from "./towerManager";
+import { GameState } from "./models";
 
 export enum CreepRoles {
   HEALER,
   ATTACKER,
   DEFENDER,
   RANGED_ATTACKER
+}
+
+Creep.prototype.getActiveParts = function(type) {
+
+  for (const part of this.body) {
+
+      if (part.hits > 0 && part.type === type) return true
+  }
+
+  return false
 }
 
 export function executeCreeps() {
@@ -78,42 +89,38 @@ export function initCreeps() {
 }
 
 function meleeAttacker(creep: Creep) {
-  displayHits(creep);
+  const targetsInRange = global.enemyCreeps
+    .filter(i => getRange(i, creep) < 2)
+    .sort((a, b) => a.hits - b.hits);
 
-  if (getTicks() > 1500) {
-    creep.moveTo(global.enemyFlag);
-    return;
+  if (targetsInRange) {
+    creep.attack(targetsInRange[0]);
   }
 
-  const targetRange = 5;
-  let targetsInRange = global.enemyCreeps
-    .filter(i => getRange(i, creep) < targetRange)
-    .sort((a, b) => getRange(a, creep) - getRange(b, creep));
+  switch(global.currentState) {
+    case GameState.Attack:
+      creep.moveTo(global.enemyFlag);
+      break;
+    case GameState.Defend:
+      creep.moveTo(global.myFlag);
+      break;
+    case GameState.Gather:
+      if (global.attackerParts.length > 0) {
+        // go after the body parts
+        global.attackerParts.sort((a, b) => {
+          return creep.getRangeTo(a) - creep.getRangeTo(b);
+        });
 
-  if (targetsInRange.length > 0) {
-    creep.moveTo(targetsInRange[0]);
-    creep.attack(targetsInRange[0]);
-  } else if (global.enemyCreeps[0] && global.enemyCreeps[0].getRangeTo(global.myFlag) < 75) {
-    creep.moveTo(global.myFlag);
-  } else if (global.attackerParts.length > 0) {
-    // go after the body parts
-    global.attackerParts.sort((a, b) => {
-      return creep.getRangeTo(a) - creep.getRangeTo(b);
-    });
+        creep.moveTo(global.attackerParts[0]);
+        console.log("Attacker going after bodypart: ", global.attackerParts[0]);
+      }
+      break;
+    case GameState.PrepAttack:
+      creep.moveTo(global.myFlag);
+      break;
+    default:
+      console.log('{gameState} not supported', global.currentState);
 
-    creep.moveTo(global.attackerParts[0]);
-    console.log("Attacker going after bodypart: ", global.attackerParts[0]);
-  } else {
-    targetsInRange = global.enemyCreeps
-      .filter(i => getRange(i, creep.initialPos) < 10)
-      .sort((a, b) => getRange(a, creep) - getRange(b, creep));
-
-    if (targetsInRange.length > 0) {
-      creep.moveTo(targetsInRange[0]);
-      creep.attack(targetsInRange[0]);
-    } else {
-      creep.moveTo(creep.initialPos);
-    }
   }
 }
 
@@ -147,7 +154,7 @@ function rangedAttacker(creep: Creep) {
 
   // todo: need to figure out if doing a ranged Attack is better than a mass attack
   const range = 3;
-  const closeRange = 10;
+  const closeRange = 5;
   const enemiesInRange = global.enemyCreeps.filter(i => getRange(i, creep) < range).sort((a, b) => a.hits - b.hits);
   const enemiesInCloseRange = global.enemyCreeps
     .filter(i => getRange(i, creep) < closeRange)
