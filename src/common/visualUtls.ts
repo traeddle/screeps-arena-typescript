@@ -24,3 +24,23 @@ export function HealLine(obj1: GameObject, obj2: GameObject) {
     lineStyle: undefined
   });
 }
+
+/** Draw a line from obj1 to obj2 */
+export function AttackLine(obj1: GameObject, obj2: GameObject) {
+  new Visual().line(obj1, obj2, {
+    color: "#ff0000",
+    opacity: 0.5,
+    width: 0.1,
+    lineStyle: undefined
+  });
+}
+
+export function MassAttackCircle(obj1: GameObject) {
+  new Visual().circle(obj1, {
+    radius: 3,
+    stroke: "#ff0000",
+    fill: "#cc0000",
+    opacity: 0.25,
+    lineStyle: undefined
+  });
+}

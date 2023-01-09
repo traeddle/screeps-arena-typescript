@@ -15,13 +15,14 @@ import { executeTowers } from "./towerManager";
 import { initCreeps, executeCreeps, CreepRoles } from "./creepManager";
 import { GameManager } from "./gameManager";
 import { GameState } from "./models";
+import { Defense, DefensePosition } from "./defense";
 import {} from "./CostMatrixExtension";
 
 declare module "game/prototypes" {
   interface Creep {
-    initialPos: RoomPosition;
     role: CreepRoles;
     follow: Creep | undefined;
+    defensivePos: DefensePosition;
 
     GetPath(goal: RoomPosition, range?: number | undefined, runAway?: boolean | undefined): FindPathResult;
     HasActivePart(type: BodyPartConstant): boolean;
@@ -56,6 +57,7 @@ declare global {
       bodyParts: BodyPart[];
       attackerParts: BodyPart[];
       partStagingLocation: RoomPosition;
+      currentDefense: Defense;
     }
   }
 }

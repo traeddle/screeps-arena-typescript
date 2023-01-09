@@ -1,8 +1,10 @@
 /* eslint-disable prettier/prettier */
-import { RESOURCE_ENERGY, TOWER_CAPACITY, TOWER_FALLOFF_RANGE, TOWER_RANGE } from "game/constants";
+import { RESOURCE_ENERGY, TOWER_CAPACITY, TOWER_OPTIMAL_RANGE, TOWER_FALLOFF_RANGE, TOWER_RANGE } from "game/constants";
 import { getCpuTime, getDirection, getObjectsByPrototype, getRange, getTicks } from "game/utils";
 import { Creep } from "game/prototypes";
 import { GetRange } from "common/util";
+import { create } from "domain";
+import { AttackLine, HealLine } from "common/visualUtls";
 
 export function executeTowers() {
     global.myTowers.forEach(tower => {
@@ -13,23 +15,26 @@ export function executeTowers() {
         if ( targetCreep
             && tower.cooldown === 0
             && towerEnergy >= 10
-            && (tower.getRangeTo(targetCreep) < TOWER_FALLOFF_RANGE
-              || (tower.getRangeTo(targetCreep) < TOWER_RANGE && towerEnergy === TOWER_CAPACITY)
+            && (GetRange(tower, targetCreep) < TOWER_OPTIMAL_RANGE
+              || (GetRange(tower, targetCreep) < TOWER_RANGE && towerEnergy === TOWER_CAPACITY)
               ))
         {
           const attackResult = tower.attack(targetCreep);
+          AttackLine(tower, targetCreep);
           console.log("Tower attack result: ", attackResult);
-        } else {
+        } else if (towerEnergy === TOWER_CAPACITY) {
           // find creeps to heal
           const myCreepsInRange =  global.myCreeps
             .filter(x => x.hits < x.hitsMax)
             .filter(i => getRange(i, tower) < 50)
             .sort((a, b) => getRange(a, tower) - getRange(b, tower));
 
-            if(myCreepsInRange[0])
+            if(myCreepsInRange[0]) {
               tower.heal(myCreepsInRange[0]);
+              HealLine(tower, myCreepsInRange[0]);
+              console.log('Tower heal creep: ', myCreepsInRange[0].id);
+            }
         }
-
       });
 
 }
