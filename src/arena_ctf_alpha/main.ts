@@ -55,6 +55,7 @@ declare global {
       enemyFlag: Flag;
       bodyParts: BodyPart[];
       attackerParts: BodyPart[];
+      partStagingLocation: RoomPosition;
     }
   }
 }

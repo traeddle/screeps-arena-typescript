@@ -13,7 +13,7 @@ import { GameState } from "./models";
 
 export enum CreepRoles {
   HEALER,
-  ATTACKER,
+  ROAMER,
   DEFENDER,
   RANGED_ATTACKER
 }
@@ -48,8 +48,8 @@ export function executeCreeps() {
     })
     .forEach(creep => {
       switch (creep.role) {
-        case CreepRoles.ATTACKER:
-          meleeAttacker(creep);
+        case CreepRoles.ROAMER:
+          roamerTick(creep);
           break;
         case CreepRoles.DEFENDER:
           meleeDefender(creep);
@@ -75,7 +75,7 @@ export function initCreeps() {
     if (creep.body.some(i => i.type === ATTACK)) {
       if (!myAttacker) {
         myAttacker = creep;
-        creep.role = CreepRoles.ATTACKER;
+        creep.role = CreepRoles.ROAMER;
         creep.initialPos = { x: 50, y: 50 };
       } else {
         creep.role = CreepRoles.DEFENDER;
@@ -102,48 +102,91 @@ export function initCreeps() {
   }
 }
 
-function meleeAttacker(creep: Creep) {
-  // todo: need to seperate out movement from action
-  const targetsInRange = global.enemyCreeps
-    .filter(i => getRange(i, creep) < 2)
-    .sort((a, b) => a.hits - b.hits);
-
-  if (targetsInRange) {
-    creep.attack(targetsInRange[0]);
-  }
-
-  // todo: add some logic to free when appropriate
+function roamerTick(creep: Creep) {
   let pathResult: FindPathResult;
+  let foundPart = false;
+
+  const enemiesClose = global.enemyCreeps
+        .filter(i => getRange(i, creep) < 4)
+        .sort((a, b) => a.hits - b.hits);
+
+  // this should do all the movement of the creep
   switch(global.currentState) {
     case GameState.Attack:
-      pathResult = creep.GetPath(global.enemyFlag);
-      creep.moveTo(pathResult.path[0]);
+      // attack the enemy flag
+      creep.moveTo(creep.GetPath(global.enemyFlag).path[0]);
       break;
     case GameState.Defend:
-      pathResult = creep.GetPath(global.myFlag);
-      creep.moveTo(pathResult.path[0]);
+      // go and defend the flag, engadge with the enemy if they are between us and our flag
+      creep.moveTo(creep.GetPath(global.myFlag).path[0]);
+      // if close to flag and enemy is close and this is at full health then move toward closest enemy
       break;
     case GameState.Gather:
-      if (global.attackerParts.length > 0) {
-        // go after the body parts
+      global.attackerParts.sort((a, b) => {
+        return creep.getRangeTo(a) - creep.getRangeTo(b);
+      });
 
-        global.attackerParts.sort((a, b) => {
-          return creep.getRangeTo(a) - creep.getRangeTo(b);
-        });
+      // if upgrade is available then check if it can get there before the upgrade fully decays
+      for (const part of global.attackerParts) {
+        pathResult = creep.GetPath(part);
+        const moveValue = global.GameManager.GetPathMovementValue(pathResult.path);
+        if (moveValue < part.ticksToDecay) {
+          console.log("Roamer going after bodypart: ", global.attackerParts[0]);
+          creep.moveTo(pathResult.path[0])
+          foundPart = true;
+          break;
+        }
+      }
 
-        // todo: check how long it will take to get to the part and if its to long, go to the next flag
-        pathResult = creep.GetPath(global.attackerParts[0]);
-        creep.moveTo(pathResult.path[0]);
-        console.log("Attacker going after bodypart: ", global.attackerParts[0]);
+      // if no upgrades are available then position itself near the middle of the map
+      if (!foundPart){
+        const locationRangeBuffer = 5;
+        creep.moveTo(creep.GetPath(global.partStagingLocation, locationRangeBuffer).path[0]);
+      }
+
+      // safely try to pick up upgrades
+      // will run from combat
+      if (enemiesClose[0]) {
+        // may need to get smarter and look at ranged attack enemies, vs attack enemies, vs heal
+        creep.moveTo(creep.GetPath(enemiesClose[0], undefined, true).path[0]);
       }
       break;
     case GameState.PrepAttack:
-      pathResult = creep.GetPath(global.myFlag);
-      creep.moveTo(pathResult.path[0]);
+      // bring all creeps close together before going in for all out attack
+      creep.moveTo(creep.GetPath(global.myFlag).path[0]);
       break;
     default:
-      console.log('{gameState} not supported', global.currentState);
+      console.log("This gamestate not supported: ", global.currentState)
+  }
 
+  attackWeakestEnemy(creep);
+}
+
+
+
+function attackWeakestEnemy(creep: Creep) {
+  const closeEnemies = global.enemyCreeps.filter(x => getRange(creep, x) < 4);
+
+  if (!closeEnemies) return;
+
+  if (creep.HasActivePart(ATTACK)) {
+    const meleeRangeEnemies = closeEnemies
+      .filter(x => getRange(creep, x) < 2)
+      .sort((x, y) => x.hits - y.hits);
+
+    if (meleeRangeEnemies[0]) {
+      creep.attack(meleeRangeEnemies[0]);
+      return;
+    }
+  }
+
+  if (creep.HasActivePart(RANGED_ATTACK)) {
+    if (closeEnemies.length === 1) {
+      creep.rangedAttack(closeEnemies[0])
+      return;
+    }
+
+    creep.rangedMassAttack();
   }
 }
 

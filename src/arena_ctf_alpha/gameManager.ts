@@ -14,7 +14,7 @@ import { Creep, GameObject, OwnedStructure, RoomPosition, Structure, StructureTo
 import { getCpuTime, getDirection, getObjectsByPrototype, getRange, getTerrainAt, getTicks } from "game/utils";
 import { BodyPart, Flag } from "arena";
 import { Visual } from "game/visual";
-import { CostMatrix, searchPath } from "game/path-finder";
+import { CostMatrix, searchPath, PathStep } from "game/path-finder";
 import { isFirstTick } from "common/index";
 import { GetRange, findPositionsInsideRect, GetAllRoomPositions } from "common/util";
 import { HealLine, displayHits } from "common/visualUtls";
@@ -62,6 +62,7 @@ export class GameManager {
     global.myTowers = getObjectsByPrototype(StructureTower).filter(i => i.my);
 
     initCreeps();
+    this.SetPartStagingLocation();
     this.initCostMatrix();
   }
 
@@ -187,5 +188,28 @@ export class GameManager {
 
     this.movementCostMatrix = costMatrix;
     return costMatrix;
+  }
+
+  /** This uses the movementCostMatrix to figure out how many turns it will take a creep to traverse this path */
+  public GetPathMovementValue(path: PathStep[]) {
+    let moveValue = 0;
+    path.forEach(step => {
+      moveValue += this.movementCostMatrix.get(step.x, step.y);
+    });
+
+    return moveValue;
+  }
+
+  private SetPartStagingLocation() {
+    let adjustment = 1;
+    if (global.myFlag.x < 10) adjustment = -1;
+
+    let currentPosition: RoomPosition = { x: 50, y: 50 };
+
+    while (getTerrainAt(currentPosition) !== 0) {
+      currentPosition = { x: currentPosition.x + adjustment, y: currentPosition.y + adjustment };
+    }
+
+    global.partStagingLocation = currentPosition;
   }
 }
