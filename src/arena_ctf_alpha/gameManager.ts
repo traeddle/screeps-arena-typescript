@@ -23,7 +23,7 @@ import { executeTowers } from "./towerManager";
 import { CreepRoles, executeCreeps, initCreeps } from "./creepManager";
 import { GameState } from "./models";
 import { AddCost } from "./CostMatrixExtension";
-import { defense1 } from "./defense";
+import { defense1, initDefense } from "./defense";
 
 declare module "game/path-finder" {
   interface CostMatrix {
@@ -61,8 +61,9 @@ export class GameManager {
     global.enemyFlag = getObjectsByPrototype(Flag).find(i => !i.my) as Flag;
 
     global.myTowers = getObjectsByPrototype(StructureTower).filter(i => i.my);
-    global.currentDefense = defense1;
+
     initCreeps();
+    initDefense();
     this.SetPartStagingLocation();
     this.initCostMatrix();
   }
@@ -74,9 +75,9 @@ export class GameManager {
 
     if (!global.currentState) {
       this.setGameState(GameState.Gather);
-    } else if (currentTick > 1850) {
-      this.setGameState(GameState.Attack);
     } else if (currentTick > 1800) {
+      this.setGameState(GameState.Attack);
+    } else if (currentTick > 1750) {
       this.setGameState(GameState.PrepAttack);
       if (
         GetRange(

@@ -25,6 +25,7 @@ declare module "game/prototypes" {
     defensivePos: DefensePosition;
 
     GetPath(goal: RoomPosition, range?: number | undefined, runAway?: boolean | undefined): FindPathResult;
+    GetActiveParts(type: BodyPartType): BodyPartType[]
     HasActivePart(type: BodyPartConstant): boolean;
   }
 }
@@ -98,6 +99,8 @@ export function loop(): void {
     console.log(`Game State: ${global.currentState}`);
     console.log(`I have ${global.myCreeps.length} creeps`);
     console.log(`They have ${global.enemyCreeps.length} creeps`);
+    WriteToConsole(GetCollectiveCreepInfo(global.myCreeps), "MyCreeps");
+    WriteToConsole(GetCollectiveCreepInfo(global.enemyCreeps), "EnemyCreeps");
     if (global.enemyCreeps[0]) {
       console.log("Closest enemy:", global.enemyCreeps[0].id);
     }
@@ -106,4 +109,47 @@ export function loop(): void {
   }
 
   console.log("CPU: " + (getCpuTime() / 1000000).toFixed(2).toString() + " / 50");
+}
+
+function GetCollectiveCreepInfo(creeps:Creep[]): GroupCreepInfo {
+  const returnValue: GroupCreepInfo = {
+    Hits: 0,
+    MaxHits: 0,
+    ActiveAttackParts: 0,
+    ActiveRangeAttackParts: 0,
+    ActiveHealParts: 0
+  };
+
+  creeps.forEach(creep => {
+    returnValue.Hits += creep.hits;
+    returnValue.MaxHits += creep.hitsMax;
+    returnValue.ActiveAttackParts += creep.GetActiveParts(ATTACK).length;
+    returnValue.ActiveRangeAttackParts += creep.GetActiveParts(RANGED_ATTACK).length;
+    returnValue.ActiveHealParts += creep.GetActiveParts(HEAL).length;
+  });
+
+  return returnValue;
+}
+
+function WriteToConsole(groupInfo:GroupCreepInfo, header:string): void {
+  console.log(header)
+  console.log(`\t Hits: ${groupInfo.Hits.toString()}`);
+  console.log(`\t MaxHits: ${groupInfo.MaxHits.toString()}`);
+  console.log(`\t ActiveAttackParts: ${groupInfo.ActiveAttackParts.toString()}`);
+  console.log(`\t ActiveRangeAttackParts: ${groupInfo.ActiveRangeAttackParts.toString()}`);
+  console.log(`\t ActiveHealParts: ${groupInfo.ActiveHealParts.toString()}`);
+}
+
+interface GroupCreepInfo {
+  Hits: number
+  MaxHits: number
+  ActiveAttackParts: number
+  ActiveRangeAttackParts: number
+  ActiveHealParts: number
+
+  /*
+  GroupCreepInfo() { return {
+    Hits = 0;
+    MaxHits = 0
+  }}*/
 }

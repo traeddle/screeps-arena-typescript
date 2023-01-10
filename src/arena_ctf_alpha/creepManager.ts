@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
 import { ATTACK, HEAL, MOVE, RANGED_ATTACK, RESOURCE_ENERGY, TOUGH, TOWER_RANGE } from "game/constants";
-import { Creep, GameObject, RoomPosition, StructureTower } from "game/prototypes";
+import { BodyPartType, Creep, GameObject, RoomPosition, StructureTower } from "game/prototypes";
 import { getCpuTime, getDirection, getObjectsByPrototype, getRange, getTicks } from "game/utils";
 import { BodyPart, Flag } from "arena";
 import { Visual } from "game/visual";
@@ -12,6 +12,7 @@ import { executeTowers } from "./towerManager";
 import { GameState } from "./models";
 import { GetRange } from "common/util";
 import { createPrivateKey } from "crypto";
+import { parentPort } from "worker_threads";
 
 export enum CreepRoles {
   HEALER,
@@ -20,14 +21,18 @@ export enum CreepRoles {
   RANGED_ATTACKER
 }
 
-Creep.prototype.HasActivePart = function(type) {
-
+Creep.prototype.HasActivePart = function(type: BodyPartType) {
   for (const part of this.body) {
-
       if (part.hits > 0 && part.type === type) return true
   }
 
   return false
+}
+
+
+
+Creep.prototype.GetActiveParts = function(type: BodyPartType): BodyPartType[] {
+  return this.body.filter(x => x.hits > 0 && x.type === type);
 }
 
 Creep.prototype.GetPath = function(goal: RoomPosition, range: number | undefined, runAway: boolean | undefined) {
@@ -101,12 +106,10 @@ export function initCreeps() {
     healers[i].follow = myAttacker;
   }
 
-  global.currentDefense.Points.forEach(defensePoint => {
-    defensePoint.Defender = global.myCreeps.filter(x => x.HasActivePart(defensePoint.RequestedType) && !x.defensivePos)[0];
-    defensePoint.Defender.defensivePos = defensePoint;
-  });
 
 }
+
+
 
 function roamerTick(creep: Creep) {
   // this should do all the movement of the creep
