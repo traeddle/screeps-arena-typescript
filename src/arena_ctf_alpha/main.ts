@@ -100,7 +100,7 @@ export function loop(): void {
     console.log(`Game State: ${global.currentState}`);
     WriteToConsole(GetCollectiveCreepInfo(global.myCreeps), "MyCreeps");
     WriteToConsole(GetCollectiveCreepInfo(global.enemyCreeps), "EnemyCreeps");
-    WriteToConsole(GetCollectiveCreepInfo(global.enemyCreeps.filter(x => GetRange(x, global.myFlag))), "Enemies near base");
+    WriteToConsole(GetCollectiveCreepInfo(global.enemyCreeps.filter(x => GetRange(x, global.myFlag) < 20)), "Enemies near base");
     // global.GameManager.PathingCostMatrix.Print();
   }
 
