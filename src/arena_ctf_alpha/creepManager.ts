@@ -1,12 +1,12 @@
 /* eslint-disable prettier/prettier */
-import { ATTACK, HEAL, MOVE, RANGED_ATTACK, RESOURCE_ENERGY, TOUGH, TOWER_RANGE } from "game/constants";
-import { BodyPartType, Creep, GameObject, RoomPosition, StructureTower } from "game/prototypes";
+import { ATTACK, HEAL, MOVE, RANGED_ATTACK, RESOURCE_ENERGY, TOUGH, TOWER_RANGE, BodyPartConstant } from "game/constants";
+import { Creep, GameObject, RoomPosition, StructureTower } from "game/prototypes";
 import { getCpuTime, getDirection, getObjectsByPrototype, getRange, getTicks } from "game/utils";
 import { BodyPart, Flag } from "arena";
 import { Visual } from "game/visual";
 import { FindPathResult, searchPath } from "game/path-finder";
 import { isFirstTick } from "common/index";
-import { HealLine, AttackLine, MassAttackCircle, displayHits } from "common/visualUtls";
+import { HealLine, AttackLine, MassAttackSquare, displayHits } from "common/visualUtls";
 import { colors } from "common/constants";
 import { executeTowers } from "./towerManager";
 import { GameState } from "./models";
@@ -21,7 +21,7 @@ export enum CreepRoles {
   RANGED_ATTACKER
 }
 
-Creep.prototype.HasActivePart = function(type: BodyPartType) {
+Creep.prototype.HasActivePart = function(type: BodyPartConstant) {
   for (const part of this.body) {
       if (part.hits > 0 && part.type === type) return true
   }
@@ -29,10 +29,8 @@ Creep.prototype.HasActivePart = function(type: BodyPartType) {
   return false
 }
 
-
-
-Creep.prototype.GetActiveParts = function(type: BodyPartType): BodyPartType[] {
-  return this.body.filter(x => x.hits > 0 && x.type === type);
+Creep.prototype.GetActiveParts = function(type: BodyPartConstant): BodyPartConstant[] {
+  return this.body.filter(x => x.hits > 0 && x.type === type).map(x => x.type);
 }
 
 Creep.prototype.GetPath = function(goal: RoomPosition, range: number | undefined, runAway: boolean | undefined) {
@@ -123,13 +121,14 @@ function roamerTick(creep: Creep) {
       creep.moveTo(creep.GetPath(creep.defensivePos.Position).path[0]);
       // if close to flag and enemy is close and this is at full health then move toward closest enemy
       break;
+    case GameState.PrepAttack:
     case GameState.Gather:
       roamerGather(creep);
       break;
-    case GameState.PrepAttack:
+    // case GameState.PrepAttack:
       // bring all creeps close together before going in for all out attack
-      creep.moveTo(creep.GetPath(global.myCreeps.filter(x => x.role === CreepRoles.DEFENDER)[0]).path[0]);
-      break;
+    //  creep.moveTo(creep.GetPath(global.myCreeps.filter(x => x.role === CreepRoles.DEFENDER)[0]).path[0]);
+    //  break;
     default:
       console.log("This gamestate not supported: ", global.currentState)
   }
@@ -209,20 +208,24 @@ function attackWeakestEnemy(creep: Creep) {
     }
 
     creep.rangedMassAttack();
-    MassAttackCircle(creep);
+    MassAttackSquare(creep);
   }
 }
 
 function meleeDefender(creep: Creep) {
+  creep.moveTo(creep.GetPath(creep.defensivePos.Position).path[0]);
+
+  /*
   // this should do all the movement of the creep
   switch(global.currentState) {
     case GameState.Attack:
       // attack the enemy flag
       creep.moveTo(creep.GetPath(global.enemyFlag).path[0]);
       break;
-    case GameState.PrepAttack:
+     case GameState.PrepAttack:
       creep.moveTo(creep.GetPath(global.myCreeps.filter(x => x.role === CreepRoles.ROAMER)[0]).path[0]);
       break;
+    case GameState.PrepAttack:
     case GameState.Defend:
     case GameState.Gather:
       // go and defend the flag, engadge with the enemy if they are between us and our flag
@@ -231,7 +234,7 @@ function meleeDefender(creep: Creep) {
       break;
     default:
       console.log("This gamestate not supported: ", global.currentState)
-  }
+  }*/
 
   attackWeakestEnemy(creep);
 }
@@ -248,10 +251,14 @@ function rangedAttacker(creep: Creep) {
     creep.follow.pull(creep);
   }
 
+  if (GetRange(creep, global.enemyFlag) < 25) {
+    creep.moveTo(creep.GetPath(global.enemyFlag).path[0]);
+  }
+
   switch(global.currentState) {
     case GameState.Attack:
       // attack the enemy flag
-      creep.moveTo(creep.GetPath(global.enemyFlag).path[0]);
+      // creep.moveTo(creep.GetPath(global.enemyFlag).path[0]);
       break;
     case GameState.Defend:
       creep.moveTo(creep.GetPath(creep.defensivePos.Position).path[0]);
@@ -271,15 +278,21 @@ function healer(creep: Creep) {
     creep.follow = undefined;
   }
 
-  if (creep.follow) {
-    creep.moveTo(creep.follow);
+  if (!creep.follow) {
+    creep.moveTo(creep.GetPath(creep.defensivePos.Position).path[0]);
+  } else {
+    creep.moveTo(creep.GetPath(creep.follow).path[0]);
     creep.follow.pull(creep);
+  }
+
+  if (GetRange(creep, global.enemyFlag) < 25) {
+    creep.moveTo(creep.GetPath(global.enemyFlag).path[0]);
   }
 
   switch(global.currentState) {
     case GameState.Attack:
       // attack the enemy flag
-      creep.moveTo(creep.GetPath(global.enemyFlag).path[0]);
+      // creep.moveTo(creep.GetPath(global.enemyFlag).path[0]);
       break;
     case GameState.Defend:
       creep.moveTo(creep.GetPath(creep.defensivePos.Position).path[0]);

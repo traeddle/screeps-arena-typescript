@@ -7,6 +7,8 @@ import { create } from "domain";
 import { AttackLine, HealLine } from "common/visualUtls";
 
 export function executeTowers() {
+    // might be a good idea to let the towers fully charge up so they can do some burst damage
+    // maybe make them wait 12 or 15 ticks between blasting 
     global.myTowers.forEach(tower => {
         // find enemy creep closest to flag, attack that creep if its in range of the tower
         const targetCreep = global.enemyCreeps[0];

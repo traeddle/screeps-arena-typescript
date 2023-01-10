@@ -101,7 +101,6 @@ export class GameManager {
     }
   }
 
-  // todo: create a costmatrix, make all squares closer to the enemy flag cost x(1) more
   // this will allow me to create a modified matrix every turn based on where the enemy creeps are
   // attack creeps add more for 2 spaces around them, range creeps give more for 4 spaces around with possibly a falloff
   // also add for the towers
@@ -122,6 +121,8 @@ export class GameManager {
         AddCost(this.costMatrix, pos, costToAdd);
       }
     });
+
+    // todo: add enemy towers? (include energy/Range?) if we're including energy we'll have to put it as part of the enemies, though that may be to much for the full range of a tower, maybe both and include energy within 5 or 20 range of tower
     // this.costMatrix.Print();
   }
 
@@ -130,7 +131,6 @@ export class GameManager {
 
     this.AddCostForEnemies(this.PathingCostMatrix, ATTACK, 1, 10);
     this.AddCostForEnemies(this.PathingCostMatrix, RANGED_ATTACK, 3, 10);
-    // todo: add enemy towers? (include energy?)
   }
 
   private AddCostForEnemies(

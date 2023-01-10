@@ -17,6 +17,7 @@ import { GameManager } from "./gameManager";
 import { GameState } from "./models";
 import { Defense, DefensePosition } from "./defense";
 import {} from "./CostMatrixExtension";
+import { GetRange } from "common/util";
 
 declare module "game/prototypes" {
   interface Creep {
@@ -25,7 +26,7 @@ declare module "game/prototypes" {
     defensivePos: DefensePosition;
 
     GetPath(goal: RoomPosition, range?: number | undefined, runAway?: boolean | undefined): FindPathResult;
-    GetActiveParts(type: BodyPartType): BodyPartType[]
+    GetActiveParts(type: BodyPartConstant): BodyPartConstant[]
     HasActivePart(type: BodyPartConstant): boolean;
   }
 }
@@ -97,14 +98,9 @@ export function loop(): void {
   if (getTicks() % 10 === 0) {
     // console.log("CPU: " + (getCpuTime() / 1000000).toFixed(2).toString() + " / 50");
     console.log(`Game State: ${global.currentState}`);
-    console.log(`I have ${global.myCreeps.length} creeps`);
-    console.log(`They have ${global.enemyCreeps.length} creeps`);
     WriteToConsole(GetCollectiveCreepInfo(global.myCreeps), "MyCreeps");
     WriteToConsole(GetCollectiveCreepInfo(global.enemyCreeps), "EnemyCreeps");
-    if (global.enemyCreeps[0]) {
-      console.log("Closest enemy:", global.enemyCreeps[0].id);
-    }
-
+    WriteToConsole(GetCollectiveCreepInfo(global.enemyCreeps.filter(x => GetRange(x, global.myFlag))), "Enemies near base");
     // global.GameManager.PathingCostMatrix.Print();
   }
 
@@ -113,6 +109,7 @@ export function loop(): void {
 
 function GetCollectiveCreepInfo(creeps:Creep[]): GroupCreepInfo {
   const returnValue: GroupCreepInfo = {
+    Creeps: 0,
     Hits: 0,
     MaxHits: 0,
     ActiveAttackParts: 0,
@@ -121,6 +118,7 @@ function GetCollectiveCreepInfo(creeps:Creep[]): GroupCreepInfo {
   };
 
   creeps.forEach(creep => {
+    returnValue.Creeps += 1;
     returnValue.Hits += creep.hits;
     returnValue.MaxHits += creep.hitsMax;
     returnValue.ActiveAttackParts += creep.GetActiveParts(ATTACK).length;
@@ -133,6 +131,7 @@ function GetCollectiveCreepInfo(creeps:Creep[]): GroupCreepInfo {
 
 function WriteToConsole(groupInfo:GroupCreepInfo, header:string): void {
   console.log(header)
+  console.log(`\t Creeps: ${groupInfo.Creeps.toString()}`);
   console.log(`\t Hits: ${groupInfo.Hits.toString()}`);
   console.log(`\t MaxHits: ${groupInfo.MaxHits.toString()}`);
   console.log(`\t ActiveAttackParts: ${groupInfo.ActiveAttackParts.toString()}`);
@@ -141,6 +140,7 @@ function WriteToConsole(groupInfo:GroupCreepInfo, header:string): void {
 }
 
 interface GroupCreepInfo {
+  Creeps: number
   Hits: number
   MaxHits: number
   ActiveAttackParts: number

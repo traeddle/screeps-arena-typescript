@@ -1,4 +1,4 @@
-import { GameObject, Creep, Structure } from "game/prototypes";
+import { Creep, GameObject, Structure } from "game/prototypes";
 import { Visual } from "game/visual";
 
 /** Display the hits remaining */
@@ -42,5 +42,14 @@ export function MassAttackCircle(obj1: GameObject) {
     fill: "#cc0000",
     opacity: 0.25,
     lineStyle: undefined
+  });
+}
+
+export function MassAttackSquare(obj1: GameObject) {
+  const attackRange = 3;
+  new Visual().rect({ x: obj1.x - attackRange, y: obj1.y - attackRange }, attackRange * 2 + 1, attackRange * 2 + 1, {
+    fill: "#cc0000",
+    stroke: "#ff0000",
+    opacity: 0.2
   });
 }
