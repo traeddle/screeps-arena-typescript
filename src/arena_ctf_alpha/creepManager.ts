@@ -222,7 +222,8 @@ function attackWeakestEnemy(creep: Creep) {
 function meleeDefender(creep: Creep) {
 
   if (CanMove(creep)) {
-    creep.moveTo(creep.GetPath(creep.defensivePos.Position).path[0]);
+    if ( creep.x !== creep.defensivePos.Position.x  || creep.y !== creep.defensivePos.Position.y )
+        creep.moveTo(creep.GetPath(creep.defensivePos.Position).path[0]);
 
   /*
   // this should do all the movement of the creep
@@ -256,7 +257,8 @@ function rangedAttacker(creep: Creep) {
     }
 
     if (creep.defensivePos) {
-      creep.moveTo(creep.GetPath(creep.defensivePos.Position).path[0]);
+      if ( creep.x !== creep.defensivePos.Position.x  || creep.y !== creep.defensivePos.Position.y )
+        creep.moveTo(creep.GetPath(creep.defensivePos.Position).path[0]);
     } else if (creep.follow) {
       creep.moveTo(creep.GetPath(creep.follow).path[0]);
       creep.follow.pull(creep);
@@ -297,7 +299,8 @@ function healer(creep: Creep) {
     }
 
     if (creep.defensivePos) {
-      creep.moveTo(creep.GetPath(creep.defensivePos.Position).path[0]);
+      if ( creep.x !== creep.defensivePos.Position.x  || creep.y !== creep.defensivePos.Position.y )
+        creep.moveTo(creep.GetPath(creep.defensivePos.Position).path[0]);
     } else if (creep.follow) {
       creep.moveTo(creep.GetPath(creep.follow).path[0]);
       creep.follow.pull(creep);
