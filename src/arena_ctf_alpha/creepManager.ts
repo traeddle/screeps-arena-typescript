@@ -111,29 +111,36 @@ export function initCreeps() {
 
 function roamerTick(creep: Creep) {
   // this should do all the movement of the creep
-  switch(global.currentState) {
-    case GameState.Attack:
-      // attack the enemy flag
-      creep.moveTo(creep.GetPath(global.enemyFlag).path[0]);
-      break;
-    case GameState.Defend:
-      // go and defend the flag, engadge with the enemy if they are between us and our flag
-      creep.moveTo(creep.GetPath(creep.defensivePos.Position).path[0]);
-      // if close to flag and enemy is close and this is at full health then move toward closest enemy
-      break;
-    case GameState.PrepAttack:
-    case GameState.Gather:
-      roamerGather(creep);
-      break;
-    // case GameState.PrepAttack:
+
+  if (CanMove(creep)) {
+    switch (global.currentState) {
+      case GameState.Attack:
+        // attack the enemy flag
+        creep.moveTo(creep.GetPath(global.enemyFlag).path[0]);
+        break;
+      case GameState.Defend:
+        // go and defend the flag, engadge with the enemy if they are between us and our flag
+        creep.moveTo(creep.GetPath(creep.defensivePos.Position).path[0]);
+        // if close to flag and enemy is close and this is at full health then move toward closest enemy
+        break;
+      case GameState.PrepAttack:
+      case GameState.Gather:
+        roamerGather(creep);
+        break;
+      // case GameState.PrepAttack:
       // bring all creeps close together before going in for all out attack
-    //  creep.moveTo(creep.GetPath(global.myCreeps.filter(x => x.role === CreepRoles.DEFENDER)[0]).path[0]);
-    //  break;
-    default:
-      console.log("This gamestate not supported: ", global.currentState)
+      //  creep.moveTo(creep.GetPath(global.myCreeps.filter(x => x.role === CreepRoles.DEFENDER)[0]).path[0]);
+      //  break;
+      default:
+        console.log("This gamestate not supported: ", global.currentState);
+    }
   }
 
   attackWeakestEnemy(creep);
+}
+
+function CanMove(creep: Creep) : boolean {
+  return creep.fatigue === 0 && creep.HasActivePart(MOVE);
 }
 
 function roamerGather(creep: Creep) {
@@ -213,7 +220,9 @@ function attackWeakestEnemy(creep: Creep) {
 }
 
 function meleeDefender(creep: Creep) {
-  creep.moveTo(creep.GetPath(creep.defensivePos.Position).path[0]);
+
+  if (CanMove(creep)) {
+    creep.moveTo(creep.GetPath(creep.defensivePos.Position).path[0]);
 
   /*
   // this should do all the movement of the creep
@@ -235,39 +244,42 @@ function meleeDefender(creep: Creep) {
     default:
       console.log("This gamestate not supported: ", global.currentState)
   }*/
+  }
 
   attackWeakestEnemy(creep);
 }
 
 function rangedAttacker(creep: Creep) {
-  if (creep.follow && !creep.follow.exists) {
-    creep.follow = undefined;
-  }
+  if (CanMove(creep)) {
+    if (creep.follow && !creep.follow.exists) {
+      creep.follow = undefined;
+    }
 
-  if (!creep.follow) {
-    creep.moveTo(creep.GetPath(creep.defensivePos.Position).path[0]);
-  } else {
-    creep.moveTo(creep.GetPath(creep.follow).path[0]);
-    creep.follow.pull(creep);
-  }
-
-  if (GetRange(creep, global.enemyFlag) < 25) {
-    creep.moveTo(creep.GetPath(global.enemyFlag).path[0]);
-  }
-
-  switch(global.currentState) {
-    case GameState.Attack:
-      // attack the enemy flag
-      // creep.moveTo(creep.GetPath(global.enemyFlag).path[0]);
-      break;
-    case GameState.Defend:
+    if (!creep.follow) {
       creep.moveTo(creep.GetPath(creep.defensivePos.Position).path[0]);
-      break;
-    case GameState.Gather:
-    case GameState.PrepAttack:
-      break;
-    default:
-      console.log("This gamestate not supported: ", global.currentState)
+    } else {
+      creep.moveTo(creep.GetPath(creep.follow).path[0]);
+      creep.follow.pull(creep);
+    }
+
+    if (GetRange(creep, global.enemyFlag) < 25) {
+      creep.moveTo(creep.GetPath(global.enemyFlag).path[0]);
+    }
+
+    switch(global.currentState) {
+      case GameState.Attack:
+        // attack the enemy flag
+        // creep.moveTo(creep.GetPath(global.enemyFlag).path[0]);
+        break;
+      case GameState.Defend:
+        creep.moveTo(creep.GetPath(creep.defensivePos.Position).path[0]);
+        break;
+      case GameState.Gather:
+      case GameState.PrepAttack:
+        break;
+      default:
+        console.log("This gamestate not supported: ", global.currentState)
+    }
   }
 
   attackWeakestEnemy(creep);
@@ -278,30 +290,32 @@ function healer(creep: Creep) {
     creep.follow = undefined;
   }
 
-  if (!creep.follow) {
-    creep.moveTo(creep.GetPath(creep.defensivePos.Position).path[0]);
-  } else {
-    creep.moveTo(creep.GetPath(creep.follow).path[0]);
-    creep.follow.pull(creep);
-  }
-
-  if (GetRange(creep, global.enemyFlag) < 25) {
-    creep.moveTo(creep.GetPath(global.enemyFlag).path[0]);
-  }
-
-  switch(global.currentState) {
-    case GameState.Attack:
-      // attack the enemy flag
-      // creep.moveTo(creep.GetPath(global.enemyFlag).path[0]);
-      break;
-    case GameState.Defend:
+  if (CanMove(creep)) {
+    if (!creep.follow) {
       creep.moveTo(creep.GetPath(creep.defensivePos.Position).path[0]);
-      break;
-    case GameState.Gather:
-    case GameState.PrepAttack:
-      break;
-    default:
-      console.log("This gamestate not supported: ", global.currentState)
+    } else {
+      creep.moveTo(creep.GetPath(creep.follow).path[0]);
+      creep.follow.pull(creep);
+    }
+
+    if (GetRange(creep, global.enemyFlag) < 25) {
+      creep.moveTo(creep.GetPath(global.enemyFlag).path[0]);
+    }
+
+    switch(global.currentState) {
+      case GameState.Attack:
+        // attack the enemy flag
+        // creep.moveTo(creep.GetPath(global.enemyFlag).path[0]);
+        break;
+      case GameState.Defend:
+        creep.moveTo(creep.GetPath(creep.defensivePos.Position).path[0]);
+        break;
+      case GameState.Gather:
+      case GameState.PrepAttack:
+        break;
+      default:
+        console.log("This gamestate not supported: ", global.currentState)
+    }
   }
 
   let targetsInHealRange: Creep[];
