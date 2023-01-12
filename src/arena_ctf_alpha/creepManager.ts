@@ -255,17 +255,21 @@ function rangedAttacker(creep: Creep) {
       creep.follow = undefined;
     }
 
-    if (!creep.follow) {
+    if (creep.defensivePos) {
       creep.moveTo(creep.GetPath(creep.defensivePos.Position).path[0]);
-    } else {
+    } else if (creep.follow) {
       creep.moveTo(creep.GetPath(creep.follow).path[0]);
       creep.follow.pull(creep);
+    }
+    else {
+      console.log(`Creep is lost ${creep.id}`);
     }
 
     if (GetRange(creep, global.enemyFlag) < 25) {
       creep.moveTo(creep.GetPath(global.enemyFlag).path[0]);
     }
 
+    /*
     switch(global.currentState) {
       case GameState.Attack:
         // attack the enemy flag
@@ -280,28 +284,29 @@ function rangedAttacker(creep: Creep) {
       default:
         console.log("This gamestate not supported: ", global.currentState)
     }
+    */
   }
 
   attackWeakestEnemy(creep);
 }
 
 function healer(creep: Creep) {
-  if (creep.follow && !creep.follow.exists) {
-    creep.follow = undefined;
-  }
-
   if (CanMove(creep)) {
-    if (!creep.follow) {
+    if (creep.follow && !creep.follow.exists) {
+      creep.follow = undefined;
+    }
+
+    if (creep.defensivePos) {
       creep.moveTo(creep.GetPath(creep.defensivePos.Position).path[0]);
-    } else {
+    } else if (creep.follow) {
       creep.moveTo(creep.GetPath(creep.follow).path[0]);
       creep.follow.pull(creep);
     }
-
-    if (GetRange(creep, global.enemyFlag) < 25) {
-      creep.moveTo(creep.GetPath(global.enemyFlag).path[0]);
+    else {
+      console.log(`Creep is lost ${creep.id}`);
     }
 
+    /*
     switch(global.currentState) {
       case GameState.Attack:
         // attack the enemy flag
@@ -315,7 +320,7 @@ function healer(creep: Creep) {
         break;
       default:
         console.log("This gamestate not supported: ", global.currentState)
-    }
+    } */
   }
 
   let targetsInHealRange: Creep[];
